@@ -1,0 +1,94 @@
+### ==========================================
+### 1. MÓDULO DE GÉNEROS
+### ==========================================
+
+### Crear un Género (Activo)
+POST http://localhost:3000/api/generos
+Content-Type: application/json
+
+{
+  "nombre": "Ciencia Ficción",
+  "estado": "Activo",
+  "descripcion": "Películas de viajes en el espacio, tecnología futurista y realidades alternas."
+}
+
+### Consultar todos los Géneros
+GET http://localhost:3000/api/generos
+
+
+### ==========================================
+### 2. MÓDULO DE DIRECTORES
+### ==========================================
+
+### Crear un Director (Activo)
+POST http://localhost:3000/api/directores
+Content-Type: application/json
+
+{
+  "nombres": "Christopher Nolan",
+  "estado": "Activo"
+}
+
+### Consultar todos los Directores
+GET http://localhost:3000/api/directores
+
+
+### ==========================================
+### 3. MÓDULO DE PRODUCTORAS
+### ==========================================
+
+### Crear una Productora (Activa)
+POST http://localhost:3000/api/productoras
+Content-Type: application/json
+
+{
+  "nombre_productora": "Warner Bros",
+  "estado": "Activo",
+  "slogan": "The Stuff Dreams Are Made Of",
+  "descripcion": "Compañía estadounidense de producción de cine y televisión."
+}
+
+### Consultar todas las Productoras
+GET http://localhost:3000/api/productoras
+
+
+### ==========================================
+### 4. MÓDULO DE TIPOS
+### ==========================================
+
+### Crear un Tipo de Multimedia
+POST http://localhost:3000/api/tipos
+Content-Type: application/json
+
+{
+  "nombre": "Película",
+  "descripcion": "Largometraje cinematográfico de ficción o documental."
+}
+
+### Consultar todos los Tipos
+GET http://localhost:3000/api/tipos
+
+
+### ==========================================
+### 5. MÓDULO DE MEDIA (Películas y Series)
+### ==========================================
+
+### Crear Multimedia (Nota: Reemplaza los IDs con los valores reales generados en MongoDB tras hacer los GET anteriores)
+POST http://localhost:3000/api/media
+Content-Type: application/json
+
+{
+  "serial": "MOV-001",
+  "titulo": "Interestelar",
+  "sinopsis": "Un grupo de viajeros espacial atraviesa un agujero de gusano en busca de un nuevo hogar para la humanidad.",
+  "url_pelicula": "https://elejemplo.com/ver/interestelar",
+  "imagen_portada": "https://elejemplo.com/img/interestelar.jpg",
+  "anio_estreno": 2014,
+  "genero_id": "PEGA_AQUI_EL_ID_DEL_GENERO",
+  "director_id": "PEGA_AQUI_EL_ID_DEL_DIRECTOR",
+  "productora_id": "PEGA_AQUI_EL_ID_DE_LA_PRODUCTORA",
+  "tipo_id": "PEGA_AQUI_EL_ID_DEL_TIPO"
+}
+
+### Consultar toda la Media (con relaciones pobladas)
+GET http://localhost:3000/api/media
