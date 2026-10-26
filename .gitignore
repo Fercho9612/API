@@ -1,0 +1,35 @@
+# --- IDEs y Editores ---
+.idea/
+.vscode/
+/shelf/
+/workspace.xml
+/httpRequests/
+/queries/
+/dataSources/
+/dataSources.local.xml
+
+# --- Sistema Operativo ---
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# --- Entorno y Secretos (¡Crítico!) ---# --- Archivos de configuración
+.env
+.env.*
+.env.local
+*.pem
+*.key
+
+# --- Dependencias y Compilación (Ejemplo Node.js / TypeScript) ---
+node_modules/
+dist/
+build/
+
+# --- Logs y Temporales ---
+logs/
+*.log
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.tsbuildinfo
+
