@@ -1,5 +1,6 @@
 // server.js (El Main de tu proyecto)
 
+require('dotenv').config({ path: __dirname + '/.env' }); // <-- Forzar la carga aquí
 // 1. Cargar las variables de entorno de inmediato
 require('dotenv').config();
 
