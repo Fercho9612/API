@@ -1,4 +1,4 @@
-const Genero = require('../models/genero.model');
+const Genero = require('../models/genero.model'); //
 
 // 1. GET: Obtener todos los géneros
 const getGeneros = async (req, res) => {

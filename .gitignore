@@ -1,35 +1,28 @@
-# --- IDEs y Editores ---
+# Dependencias globales o de workspaces
+node_modules/
+*/node_modules/
+
+# Entornos virtuales y configuraciones del sistema / editores
 .idea/
 .vscode/
-/shelf/
-/workspace.xml
-/httpRequests/
-/queries/
-/dataSources/
-/dataSources.local.xml
-
-# --- Sistema Operativo ---
 .DS_Store
-Thumbs.db
-Desktop.ini
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 
-# --- Entorno y Secretos (¡Crítico!) ---# --- Archivos de configuración
+# Archivos de entorno y secretos en cualquier nivel
 .env
-.env.*
-.env.local
-*.pem
-*.key
+*.local
 
-# --- Dependencias y Compilación (Ejemplo Node.js / TypeScript) ---
-node_modules/
+# Archivos de compilación / distribución de frontend y backend
 dist/
 build/
 
-# --- Logs y Temporales ---
+# Logs de npm
 logs/
 *.log
 npm-debug.log*
-yarn-error.log*
+yarn-debug.log*
 pnpm-debug.log*
-.tsbuildinfo
-
