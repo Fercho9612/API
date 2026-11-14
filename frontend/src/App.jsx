@@ -1,9 +1,11 @@
+
 import { BrowserRouter as Router, Switch, Route, Redirect } from 'react-router-dom';
 import MainLayout from './components/MainLayout';
 import Generos from './pages/Generos';
 import Directores from './pages/Directores';
 import Productoras from './pages/Productoras';
 import Tipos from './pages/Tipos';
+import Media from './pages/Media';
 
 function App() {
   return (
@@ -14,6 +16,7 @@ function App() {
           <Route path="/directores" render={() => <MainLayout><Directores /></MainLayout>} />
           <Route path="/productoras" render={() => <MainLayout><Productoras /></MainLayout>} />
           <Route path="/tipos" render={() => <MainLayout><Tipos /></MainLayout>} />
+          <Route path="/media" render={() => <MainLayout><Media /></MainLayout>} />
         </Switch>
       </Router>
   );

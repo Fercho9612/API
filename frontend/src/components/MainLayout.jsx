@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 
@@ -15,6 +16,7 @@ export default function MainLayout({ children }) {
             <NavLink className="nav-link px-3 rounded text-light" activeStyle={{ backgroundColor: '#1e293b', fontWeight: '600' }} to="/directores">Directores</NavLink>
             <NavLink className="nav-link px-3 rounded text-light" activeStyle={{ backgroundColor: '#1e293b', fontWeight: '600' }} to="/productoras">Productoras</NavLink>
             <NavLink className="nav-link px-3 rounded text-light" activeStyle={{ backgroundColor: '#1e293b', fontWeight: '600' }} to="/tipos">Tipos</NavLink>
+            <NavLink className="nav-link px-3 rounded text-light" activeStyle={{ backgroundColor: '#1e293b', fontWeight: '600' }} to="/media">Media</NavLink>
           </div>
         </nav>
 

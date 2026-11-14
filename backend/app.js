@@ -31,6 +31,7 @@ app.use(express.json());               // Permite recibir y parsear datos en for
 app.use(express.urlencoded({ extended: false })); // Permite parsear datos de formularios
 app.use(cookieParser());                 // Manejo de cookies
 app.use(express.static(path.join(__dirname, 'public'))); // Archivos estáticos (CSS, imágenes, JS)
+app.use('/imagenes', express.static(path.join(__dirname, 'imagenes'))); // Permite mostrar las imágenes cargadas
 
 app.use(cors()); // Habilitar CORS para permitir la comunicación con el Frontend
 
