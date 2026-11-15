@@ -91,6 +91,19 @@ export default function Media() {
   const [vistaPrevia, setVistaPrevia] = useState('');
   const [cargando, setCargando] = useState(false);
 
+  // Estado del buscador
+  const [busqueda, setBusqueda] = useState('');
+
+  // Filtrar por título o serial
+  const itemsFiltrados = items.filter((item) => {
+    const texto = busqueda.toLowerCase().trim();
+
+    return (
+      (item.titulo || '').toLowerCase().includes(texto) ||
+      (item.serial || '').toLowerCase().includes(texto)
+    );
+  });
+
   const cargar = async () => {
     try {
       const res = await mediaService.listar();
@@ -264,10 +277,22 @@ export default function Media() {
     try {
       const res = await mediaService.eliminar(item._id);
       await Swal.fire('Eliminado', res.data.mensaje, 'success');
-      cargar();
+      await cargar();
     } catch (err) {
       Swal.fire('Error', mensajeError(err), 'error');
     }
+  };
+
+  // Mostrar la sinopsis completa sin cambiar el tamaño de la tarjeta
+  const verSinopsis = (item) => {
+    Swal.fire({
+      title: item.titulo,
+      text: item.sinopsis,
+      confirmButtonText: 'Cerrar',
+      confirmButtonColor: '#7c3aed',
+      background: '#1a2035',
+      color: '#f1f5f9',
+    });
   };
 
   const campo = (nombre, etiqueta, tipo = 'text', ancho = 'col-md-6') => (
@@ -487,6 +512,51 @@ export default function Media() {
         <p style={{ color: '#94a3b8', fontSize: '13px' }}>
           Consulta, edita o elimina películas y series de tu catálogo.
         </p>
+
+        {/* Buscador de películas y series */}
+        <div className="mb-4" style={{ maxWidth: '500px' }}>
+          <div className="input-group">
+            <span
+              className="input-group-text"
+              style={{
+                background: '#242c47',
+                border: '1px solid #39445e',
+                color: '#a78bfa',
+              }}
+            >
+              🔎
+            </span>
+
+            <input
+              type="text"
+              className="form-control"
+              placeholder="Buscar por título o serial..."
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              style={{
+                ...estilos.campo,
+                borderTopLeftRadius: 0,
+                borderBottomLeftRadius: 0,
+              }}
+            />
+
+            {busqueda && (
+              <button
+                type="button"
+                className="btn btn-outline-light"
+                onClick={() => setBusqueda('')}
+              >
+                Limpiar
+              </button>
+            )}
+          </div>
+
+          <small style={{ color: '#94a3b8' }}>
+            {busqueda
+              ? `${itemsFiltrados.length} resultado(s) encontrado(s)`
+              : `${items.length} título(s) en el catálogo`}
+          </small>
+        </div>
       </div>
 
       {items.length === 0 ? (
@@ -504,9 +574,31 @@ export default function Media() {
 
           ¡Comienza agregando tu primera película o serie!
         </div>
+      ) : itemsFiltrados.length === 0 ? (
+        <div style={{
+          ...estilos.panel,
+          textAlign: 'center',
+          padding: '35px',
+          color: '#94a3b8',
+        }}>
+          <div style={{ fontSize: '38px' }}>🔍</div>
+
+          <h5 style={{ color: '#fff', marginTop: '12px' }}>
+            No encontramos resultados
+          </h5>
+
+          <p>No hay películas o series que coincidan con «{busqueda}».</p>
+
+          <button
+            className="btn btn-outline-light"
+            onClick={() => setBusqueda('')}
+          >
+            Mostrar todo el catálogo
+          </button>
+        </div>
       ) : (
-        <div className="row g-4">
-          {items.map((item) => (
+        <div className="row g-4 align-items-stretch">
+          {itemsFiltrados.map((item) => (
             <div className="col-12 col-md-6 col-xl-4" key={item._id}>
               <div style={{
                 background: '#1a2035',
@@ -514,6 +606,8 @@ export default function Media() {
                 borderRadius: '13px',
                 overflow: 'hidden',
                 height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
               }}>
                 <img
                   src={urlImagen(item.imagen_portada)}
@@ -523,13 +617,19 @@ export default function Media() {
                     height: '260px',
                     objectFit: 'cover',
                     background: '#11182a',
+                    flexShrink: 0,
                   }}
                   onError={(e) => {
                     e.currentTarget.style.visibility = 'hidden';
                   }}
                 />
 
-                <div style={{ padding: '18px' }}>
+                <div style={{
+                  padding: '18px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  flex: 1,
+                }}>
                   <div style={{
                     color: '#a78bfa',
                     fontSize: '12px',
@@ -538,23 +638,56 @@ export default function Media() {
                     {item.tipo_id?.nombre || 'Sin tipo'} · {item.anio_estreno}
                   </div>
 
-                  <h5 style={{ color: '#fff', fontWeight: '700' }}>
+                  <h5 style={{
+                    color: '#fff',
+                    fontWeight: '700',
+                    minHeight: '48px',
+                    marginBottom: '10px',
+                  }}>
                     {item.titulo}
                   </h5>
 
-                  <p style={{
-                    color: '#94a3b8',
-                    fontSize: '13px',
-                    minHeight: '40px',
-                  }}>
-                    {item.sinopsis}
-                  </p>
+                  {/* Sinopsis resumida con altura uniforme */}
+                  <div style={{ minHeight: '112px', marginBottom: '12px' }}>
+                    <p style={{
+                      color: '#94a3b8',
+                      fontSize: '13px',
+                      lineHeight: '1.4',
+                      margin: 0,
+                      display: '-webkit-box',
+                      WebkitLineClamp: 5,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      overflowWrap: 'anywhere',
+                    }}>
+                      {item.sinopsis}
+                    </p>
+
+                    {item.sinopsis && (
+                      <button
+                        type="button"
+                        onClick={() => verSinopsis(item)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#a78bfa',
+                          padding: '5px 0 0',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Leer más
+                      </button>
+                    )}
+                  </div>
 
                   <div style={{
                     borderTop: '1px solid #303951',
                     paddingTop: '12px',
                     color: '#cbd5e1',
                     fontSize: '12px',
+                    lineHeight: '1.7',
                   }}>
                     <div>Género: {item.genero_id?.nombre || 'No disponible'}</div>
                     <div>Director: {item.director_id?.nombres || 'No disponible'}</div>
@@ -563,7 +696,8 @@ export default function Media() {
                     <div>Creación: {fecha(item.fecha_creacion)}</div>
                   </div>
 
-                  <div className="d-flex gap-2 mt-3">
+                  {/* Botones siempre al final */}
+                  <div className="d-flex gap-2 mt-auto pt-3">
                     <button
                       className="btn btn-sm btn-warning flex-fill"
                       onClick={() => handleEditar(item)}
