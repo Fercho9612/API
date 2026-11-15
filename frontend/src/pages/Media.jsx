@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import Swal from 'sweetalert2';
 import mediaService from '../services/mediaService';
@@ -12,7 +11,6 @@ const tipoService = crearServicio('tipos');
 const API_URL = 'http://localhost:3000';
 
 const vacio = {
-  serial: '',
   titulo: '',
   sinopsis: '',
   url_pelicula: '',
@@ -42,6 +40,14 @@ const fecha = (f) => (f ? new Date(f).toLocaleDateString() : '');
 const urlImagen = (ruta) => {
   if (!ruta) return '';
   return ruta.startsWith('http') ? ruta : `${API_URL}${ruta}`;
+};
+
+// Clasifica cada producción según el nombre de su tipo
+const categoria = (item) => {
+  const n = (item.tipo_id?.nombre || '').toLowerCase();
+  if (n.includes('serie')) return 'series';
+  if (n.includes('pel')) return 'peliculas';
+  return 'otros';
 };
 
 const estilos = {
@@ -91,18 +97,24 @@ export default function Media() {
   const [vistaPrevia, setVistaPrevia] = useState('');
   const [cargando, setCargando] = useState(false);
 
-  // Estado del buscador
+  // Estado del buscador y de la pestaña activa
   const [busqueda, setBusqueda] = useState('');
+  const [pestana, setPestana] = useState('peliculas');
 
-  // Filtrar por título o serial
+  // Filtrar por pestaña y por título o serial
   const itemsFiltrados = items.filter((item) => {
     const texto = busqueda.toLowerCase().trim();
 
-    return (
+    const coincide =
       (item.titulo || '').toLowerCase().includes(texto) ||
-      (item.serial || '').toLowerCase().includes(texto)
-    );
+      (item.serial || '').toLowerCase().includes(texto);
+
+    const enPestana = pestana === 'todos' || categoria(item) === pestana;
+
+    return coincide && enPestana;
   });
+
+  const contar = (c) => items.filter((i) => categoria(i) === c).length;
 
   const cargar = async () => {
     try {
@@ -241,7 +253,6 @@ export default function Media() {
     setEditandoId(item._id);
 
     setForm({
-      serial: item.serial,
       titulo: item.titulo,
       sinopsis: item.sinopsis,
       url_pelicula: item.url_pelicula,
@@ -377,14 +388,17 @@ export default function Media() {
           Completa la información y selecciona la portada de tu película o serie.
         </p>
 
+        <p style={{ color: '#94a3b8', fontSize: '12px' }}>
+          El serial se genera automáticamente al registrar (PEL-0001, SER-0001...).
+        </p>
+
         <form onSubmit={handleSubmit}>
           <h6 style={{ color: '#a78bfa', margin: '25px 0 15px' }}>
             INFORMACIÓN DE LA PELÍCULA O SERIE
           </h6>
 
           <div className="row g-3">
-            {campo('serial', 'Serial', 'text', 'col-md-4')}
-            {campo('titulo', 'Título de la película o serie', 'text', 'col-md-8')}
+            {campo('titulo', 'Título de la película o serie', 'text', 'col-12')}
 
             <div className="col-12">
               <label style={estilos.etiqueta}>Sinopsis</label>
@@ -559,6 +573,33 @@ export default function Media() {
         </div>
       </div>
 
+      {/* Pestañas: películas, series y todos */}
+      <div className="d-flex gap-2 mb-4 flex-wrap">
+        {[
+          { id: 'peliculas', texto: '🎬 Películas', total: contar('peliculas') },
+          { id: 'series', texto: '📺 Series', total: contar('series') },
+          { id: 'todos', texto: 'Todos', total: items.length },
+        ].map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => setPestana(p.id)}
+            className="btn"
+            style={{
+              background: pestana === p.id
+                ? 'linear-gradient(90deg, #7c3aed, #4f46e5)'
+                : '#242c47',
+              color: '#fff',
+              border: '1px solid #39445e',
+              borderRadius: '8px',
+              fontWeight: '600',
+            }}
+          >
+            {p.texto} ({p.total})
+          </button>
+        ))}
+      </div>
+
       {items.length === 0 ? (
         <div style={{
           ...estilos.panel,
@@ -587,14 +628,20 @@ export default function Media() {
             No encontramos resultados
           </h5>
 
-          <p>No hay películas o series que coincidan con «{busqueda}».</p>
+          <p>
+            {busqueda
+              ? `No hay resultados que coincidan con «${busqueda}» en esta sección.`
+              : 'Aún no hay registros en esta sección.'}
+          </p>
 
-          <button
-            className="btn btn-outline-light"
-            onClick={() => setBusqueda('')}
-          >
-            Mostrar todo el catálogo
-          </button>
+          {busqueda && (
+            <button
+              className="btn btn-outline-light"
+              onClick={() => setBusqueda('')}
+            >
+              Limpiar búsqueda
+            </button>
+          )}
         </div>
       ) : (
         <div className="row g-4 align-items-stretch">

@@ -1,4 +1,3 @@
-
 const Media = require('../models/media.model');
 
 // Obtener toda la media con sus relaciones completas
@@ -23,6 +22,9 @@ const getMedia = async (req, res) => {
 const createMedia = async (req, res) => {
   try {
     const datosMedia = { ...req.body };
+
+    // El serial lo genera el modelo automáticamente
+    delete datosMedia.serial;
 
     if (req.file) {
       datosMedia.imagen_portada = `/imagenes/${req.file.filename}`;
@@ -55,6 +57,9 @@ const updateMedia = async (req, res) => {
         mensaje: 'Multimedia no encontrada'
       });
     }
+
+    // El serial no se puede modificar
+    delete req.body.serial;
 
     Object.assign(mediaExistente, req.body);
 
