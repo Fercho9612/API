@@ -28,7 +28,12 @@ const createMedia = async (req, res) => {
 
     if (req.file) {
       datosMedia.imagen_portada = `/imagenes/${req.file.filename}`;
+    } else if (datosMedia.imagen_url) {
+      datosMedia.imagen_portada = datosMedia.imagen_url;
     }
+
+    delete datosMedia.imagen_url;
+    // -----------------------
 
     const nuevaMedia = new Media(datosMedia);
     const mediaGuardada = await nuevaMedia.save();
@@ -67,7 +72,12 @@ const updateMedia = async (req, res) => {
     // Si no se carga, se conserva la imagen anterior.
     if (req.file) {
       mediaExistente.imagen_portada = `/imagenes/${req.file.filename}`;
+    } else if (req.body.imagen_url) {
+      mediaExistente.imagen_portada = req.body.imagen_url;
     }
+
+    mediaExistente.imagen_url = undefined;
+    // -----------------------
 
     const mediaActualizada = await mediaExistente.save();
 

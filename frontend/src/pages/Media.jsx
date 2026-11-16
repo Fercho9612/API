@@ -19,6 +19,7 @@ const vacio = {
   director_id: '',
   productora_id: '',
   tipo_id: '',
+  imagen_url: '', // <-- Nuevo campo para la URL de la web
 };
 
 const mensajeError = (err) => {
@@ -31,8 +32,8 @@ const mensajeError = (err) => {
   }
 
   return data.error
-    ? `${data.mensaje || 'Error'}: ${data.error}`
-    : data.mensaje || 'Ocurrió un error inesperado';
+      ? `${data.mensaje || 'Error'}: ${data.error}`
+      : data.mensaje || 'Ocurrió un error inesperado';
 };
 
 const fecha = (f) => (f ? new Date(f).toLocaleDateString() : '');
@@ -106,8 +107,8 @@ export default function Media() {
     const texto = busqueda.toLowerCase().trim();
 
     const coincide =
-      (item.titulo || '').toLowerCase().includes(texto) ||
-      (item.serial || '').toLowerCase().includes(texto);
+        (item.titulo || '').toLowerCase().includes(texto) ||
+        (item.serial || '').toLowerCase().includes(texto);
 
     const enPestana = pestana === 'todos' || categoria(item) === pestana;
 
@@ -148,17 +149,25 @@ export default function Media() {
     cargarCatalogos();
   }, []);
 
+  // Manejar la vista previa si se selecciona archivo local o se escribe URL web
   useEffect(() => {
-    if (!archivoImagen) return;
-
-    const url = URL.createObjectURL(archivoImagen);
-    setVistaPrevia(url);
-
-    return () => URL.revokeObjectURL(url);
-  }, [archivoImagen]);
+    if (archivoImagen) {
+      const url = URL.createObjectURL(archivoImagen);
+      setVistaPrevia(url);
+      return () => URL.revokeObjectURL(url);
+    } else if (form.imagen_url) {
+      setVistaPrevia(form.imagen_url);
+    }
+  }, [archivoImagen, form.imagen_url]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+    // Si escribe una URL web, limpiamos el archivo local seleccionado para evitar conflictos
+    if (e.target.name === 'imagen_url' && e.target.value) {
+      setArchivoImagen(null);
+      const input = document.getElementById('imagen_portada');
+      if (input) input.value = '';
+    }
   };
 
   const handleImagen = (e) => {
@@ -166,33 +175,32 @@ export default function Media() {
 
     if (!archivo) return;
 
-    const tiposPermitidos = [
-      'image/jpeg',
-      'image/png',
-      'image/webp',
-    ];
+    const tiposPermitidos = ['image/jpeg', 'image/png', 'image/webp'];
 
     if (!tiposPermitidos.includes(archivo.type)) {
       Swal.fire(
-        'Formato no válido',
-        'Selecciona una imagen JPG, PNG o WEBP.',
-        'warning'
+          'Formato no válido',
+          'Selecciona una imagen JPG, PNG o WEBP.',
+          'warning'
       );
       e.target.value = '';
       return;
     }
 
+    // Corrección del cálculo de tamaño (5 MB)
     if (archivo.size > 5 * 1024 * 1024) {
       Swal.fire(
-        'Imagen demasiado grande',
-        'La imagen no debe superar los 5 MB.',
-        'warning'
+          'Imagen demasiado grande',
+          'La imagen no debe superar los 5 MB.',
+          'warning'
       );
       e.target.value = '';
       return;
     }
 
     setArchivoImagen(archivo);
+    // Si selecciona archivo local, limpiamos el campo de URL web
+    setForm({ ...form, imagen_url: '' });
   };
 
   const limpiarFormulario = () => {
@@ -208,11 +216,11 @@ export default function Media() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!editandoId && !archivoImagen) {
+    if (!editandoId && !archivoImagen && !form.imagen_url) {
       Swal.fire(
-        'Falta la portada',
-        'Selecciona una imagen para continuar.',
-        'warning'
+          'Falta la portada',
+          'Selecciona una imagen local o pega una URL web para continuar.',
+          'warning'
       );
       return;
     }
@@ -231,13 +239,13 @@ export default function Media() {
       setCargando(true);
 
       const res = editandoId
-        ? await mediaService.actualizar(editandoId, datos)
-        : await mediaService.crear(datos);
+          ? await mediaService.actualizar(editandoId, datos)
+          : await mediaService.crear(datos);
 
       await Swal.fire(
-        editandoId ? '¡Actualizado!' : '¡Registrado!',
-        res.data.mensaje,
-        'success'
+          editandoId ? '¡Actualizado!' : '¡Registrado!',
+          res.data.mensaje,
+          'success'
       );
 
       limpiarFormulario();
@@ -261,6 +269,7 @@ export default function Media() {
       director_id: item.director_id?._id || item.director_id,
       productora_id: item.productora_id?._id || item.productora_id,
       tipo_id: item.tipo_id?._id || item.tipo_id,
+      imagen_url: item.imagen_portada?.startsWith('http') ? item.imagen_portada : '',
     });
 
     setArchivoImagen(null);
@@ -294,7 +303,6 @@ export default function Media() {
     }
   };
 
-  // Mostrar la sinopsis completa sin cambiar el tamaño de la tarjeta
   const verSinopsis = (item) => {
     Swal.fire({
       title: item.titulo,
@@ -307,464 +315,369 @@ export default function Media() {
   };
 
   const campo = (nombre, etiqueta, tipo = 'text', ancho = 'col-md-6') => (
-    <div className={ancho} key={nombre}>
-      <label style={estilos.etiqueta}>{etiqueta}</label>
-      <input
-        type={tipo}
-        name={nombre}
-        className="form-control"
-        style={estilos.campo}
-        value={form[nombre]}
-        onChange={handleChange}
-        min={tipo === 'number' ? 1801 : undefined}
-        required
-      />
-    </div>
+      <div className={ancho} key={nombre}>
+        <label style={estilos.etiqueta}>{etiqueta}</label>
+        <input
+            type={tipo}
+            name={nombre}
+            className="form-control"
+            style={estilos.campo}
+            value={form[nombre]}
+            onChange={handleChange}
+            min={tipo === 'number' ? 1801 : undefined}
+            required
+        />
+      </div>
   );
 
   const selector = (nombre, etiqueta, opciones, propiedad, ancho = 'col-md-6') => (
-    <div className={ancho} key={nombre}>
-      <label style={estilos.etiqueta}>{etiqueta}</label>
-      <select
-        name={nombre}
-        className="form-select"
-        style={estilos.campo}
-        value={form[nombre]}
-        onChange={handleChange}
-        required
-      >
-        <option value="">Seleccionar {etiqueta.toLowerCase()}</option>
-        {opciones.map((item) => (
-          <option key={item._id} value={item._id}>
-            {item[propiedad]}
-          </option>
-        ))}
-      </select>
-    </div>
+      <div className={ancho} key={nombre}>
+        <label style={estilos.etiqueta}>{etiqueta}</label>
+        <select
+            name={nombre}
+            className="form-select"
+            style={estilos.campo}
+            value={form[nombre]}
+            onChange={handleChange}
+            required
+        >
+          <option value="">Seleccionar {etiqueta.toLowerCase()}</option>
+          {opciones.map((item) => (
+              <option key={item._id} value={item._id}>
+                {item[propiedad]}
+              </option>
+          ))}
+        </select>
+      </div>
   );
 
   return (
-    <div style={estilos.contenedor}>
+      <div style={estilos.contenedor}>
+        <div className="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+          <div>
+            <div style={{ color: '#a78bfa', fontSize: '13px', letterSpacing: '2px' }}>
+              GESTIÓN DE CONTENIDO AUDIOVISUAL
+            </div>
 
-      <div className="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
-        <div>
-          <div style={{ color: '#a78bfa', fontSize: '13px', letterSpacing: '2px' }}>
-            GESTIÓN DE CONTENIDO AUDIOVISUAL
+            <h2 style={{ ...estilos.titulo, fontSize: '30px', marginTop: '8px' }}>
+              🎬 Catálogo de películas y series
+            </h2>
+
+            <p style={{ color: '#94a3b8' }}>
+              Administra tus películas y series desde un solo lugar.
+            </p>
           </div>
 
-          <h2 style={{ ...estilos.titulo, fontSize: '30px', marginTop: '8px' }}>
-            🎬 Catálogo de películas y series
-          </h2>
+          <div style={{
+            background: '#242c47',
+            padding: '16px 24px',
+            borderRadius: '12px',
+            border: '1px solid #39445e',
+          }}>
+            <div style={{ color: '#a78bfa', fontSize: '12px' }}>
+              TÍTULOS REGISTRADOS
+            </div>
+            <div style={{ color: '#fff', fontSize: '26px', fontWeight: '700' }}>
+              {items.length}
+            </div>
+          </div>
+        </div>
 
-          <p style={{ color: '#94a3b8' }}>
-            Administra tus películas y series desde un solo lugar.
+        <div style={estilos.panel}>
+          <h4 style={estilos.titulo}>
+            {editandoId
+                ? '✏️ Editar película o serie'
+                : '＋ Registrar película o serie'}
+          </h4>
+
+          <p style={{ color: '#94a3b8', fontSize: '13px' }}>
+            Completa la información y selecciona la portada de tu película o serie.
           </p>
-        </div>
 
-        <div style={{
-          background: '#242c47',
-          padding: '16px 24px',
-          borderRadius: '12px',
-          border: '1px solid #39445e',
-        }}>
-          <div style={{ color: '#a78bfa', fontSize: '12px' }}>
-            TÍTULOS REGISTRADOS
-          </div>
+          <form onSubmit={handleSubmit}>
+            <h6 style={{ color: '#a78bfa', margin: '25px 0 15px' }}>
+              INFORMACIÓN DE LA PELÍCULA O SERIE
+            </h6>
 
-          <div style={{ color: '#fff', fontSize: '26px', fontWeight: '700' }}>
-            {items.length}
-          </div>
-        </div>
-      </div>
+            <div className="row g-3">
+              {campo('titulo', 'Título de la película o serie', 'text', 'col-12')}
 
-      <div style={estilos.panel}>
-        <h4 style={estilos.titulo}>
-          {editandoId
-            ? '✏️ Editar película o serie'
-            : '＋ Registrar película o serie'}
-        </h4>
-
-        <p style={{ color: '#94a3b8', fontSize: '13px' }}>
-          Completa la información y selecciona la portada de tu película o serie.
-        </p>
-
-        <p style={{ color: '#94a3b8', fontSize: '12px' }}>
-          El serial se genera automáticamente al registrar (PEL-0001, SER-0001...).
-        </p>
-
-        <form onSubmit={handleSubmit}>
-          <h6 style={{ color: '#a78bfa', margin: '25px 0 15px' }}>
-            INFORMACIÓN DE LA PELÍCULA O SERIE
-          </h6>
-
-          <div className="row g-3">
-            {campo('titulo', 'Título de la película o serie', 'text', 'col-12')}
-
-            <div className="col-12">
-              <label style={estilos.etiqueta}>Sinopsis</label>
-
-              <textarea
-                name="sinopsis"
-                className="form-control"
-                style={estilos.campo}
-                rows="3"
-                value={form.sinopsis}
-                onChange={handleChange}
-                required
-              />
-            </div>
-
-            {campo('url_pelicula', 'URL de la película o serie', 'url')}
-            {campo('anio_estreno', 'Año de estreno', 'number', 'col-md-6')}
-          </div>
-
-          <h6 style={{ color: '#a78bfa', margin: '28px 0 15px' }}>
-            IMAGEN DE PORTADA
-          </h6>
-
-          <div className="row g-3 align-items-center">
-            <div className="col-md-7">
-              <label style={estilos.etiqueta}>Cargar imagen de portada</label>
-
-              <input
-                id="imagen_portada"
-                type="file"
-                className="form-control"
-                style={estilos.campo}
-                accept="image/jpeg,image/png,image/webp"
-                onChange={handleImagen}
-                required={!editandoId}
-              />
-
-              <small style={{ color: '#94a3b8' }}>
-                Formatos JPG, PNG y WEBP. Tamaño máximo: 5 MB.
-              </small>
-            </div>
-
-            <div className="col-md-5 text-center">
-              {vistaPrevia ? (
-                <img
-                  src={vistaPrevia}
-                  alt="Vista previa de portada"
-                  style={{
-                    maxWidth: '170px',
-                    width: '100%',
-                    height: '220px',
-                    objectFit: 'cover',
-                    borderRadius: '10px',
-                    border: '2px solid #8b5cf6',
-                  }}
+              <div className="col-12">
+                <label style={estilos.etiqueta}>Sinopsis</label>
+                <textarea
+                    name="sinopsis"
+                    className="form-control"
+                    style={estilos.campo}
+                    rows="3"
+                    value={form.sinopsis}
+                    onChange={handleChange}
+                    required
                 />
-              ) : (
-                <div style={{
-                  height: '180px',
-                  border: '2px dashed #56617e',
-                  borderRadius: '10px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#94a3b8',
-                  flexDirection: 'column',
-                  gap: '10px',
-                }}>
-                  <span style={{ fontSize: '35px' }}>🖼️</span>
-                  Vista previa de la portada
+              </div>
+
+              {campo('url_pelicula', 'URL de la película o serie', 'url')}
+              {campo('anio_estreno', 'Año de estreno', 'number', 'col-md-6')}
+            </div>
+
+            <h6 style={{ color: '#a78bfa', margin: '28px 0 15px' }}>
+              IMAGEN DE PORTADA
+            </h6>
+
+            <div className="row g-3 align-items-center">
+              <div className="col-md-7">
+                {/* Opción 1: Cargar archivo local */}
+                <div className="mb-3">
+                  <label style={estilos.etiqueta}>Cargar archivo de portada (Local)</label>
+                  <input
+                      id="imagen_portada"
+                      type="file"
+                      className="form-control"
+                      style={estilos.campo}
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={handleImagen}
+                      required={!editandoId && !form.imagen_url}
+                  />
+                  <small style={{ color: '#94a3b8' }}>
+                    Formatos JPG, PNG y WEBP. Máximo 5 MB.
+                  </small>
                 </div>
+
+                {/* Opción 2: Pegar URL de la web (TMDb) */}
+                <div>
+                  <label style={estilos.etiqueta}>O pega la URL de la imagen (TMDb / Web)</label>
+                  <input
+                      type="url"
+                      name="imagen_url"
+                      className="form-control"
+                      style={estilos.campo}
+                      placeholder="https://image.tmdb.org/t/p/w500/..."
+                      value={form.imagen_url}
+                      onChange={handleChange}
+                  />
+                </div>
+              </div>
+
+              <div className="col-md-5 text-center">
+                {vistaPrevia ? (
+                    <img
+                        src={vistaPrevia}
+                        alt="Vista previa de portada"
+                        style={{
+                          maxWidth: '170px',
+                          width: '100%',
+                          height: '220px',
+                          objectFit: 'cover',
+                          borderRadius: '10px',
+                          border: '2px solid #8b5cf6',
+                        }}
+                        onError={(e) => {
+                          e.currentTarget.src = '';
+                        }}
+                    />
+                ) : (
+                    <div style={{
+                      height: '180px',
+                      border: '2px dashed #56617e',
+                      borderRadius: '10px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#94a3b8',
+                      flexDirection: 'column',
+                      gap: '10px',
+                    }}>
+                      <span style={{ fontSize: '35px' }}>🖼️</span>
+                      Vista previa de la portada
+                    </div>
+                )}
+              </div>
+            </div>
+
+            <h6 style={{ color: '#a78bfa', margin: '28px 0 15px' }}>
+              CLASIFICACIÓN
+            </h6>
+
+            <div className="row g-3">
+              {selector('genero_id', 'Género', generos, 'nombre')}
+              {selector('director_id', 'Director', directores, 'nombres')}
+              {selector('productora_id', 'Productora', productoras, 'nombre_productora')}
+              {selector('tipo_id', 'Tipo', tipos, 'nombre')}
+            </div>
+
+            <div className="d-flex gap-2 mt-4 flex-wrap">
+              <button
+                  type="submit"
+                  className="btn px-4"
+                  disabled={cargando}
+                  style={{
+                    background: 'linear-gradient(90deg, #7c3aed, #4f46e5)',
+                    color: '#fff',
+                    border: 'none',
+                    fontWeight: '600',
+                    borderRadius: '8px',
+                  }}
+              >
+                {cargando
+                    ? 'Guardando...'
+                    : editandoId
+                        ? 'Guardar cambios'
+                        : '＋ Registrar película o serie'}
+              </button>
+
+              {editandoId && (
+                  <button
+                      type="button"
+                      className="btn btn-outline-light"
+                      onClick={limpiarFormulario}
+                  >
+                    Cancelar edición
+                  </button>
+              )}
+            </div>
+          </form>
+        </div>
+
+        {/* Sección del buscador y listado */}
+        <div className="mb-3">
+          <h4 style={estilos.titulo}>
+            🍿 Películas y series registradas
+          </h4>
+          <p style={{ color: '#94a3b8', fontSize: '13px' }}>
+            Consulta, edita o elimina películas y series de tu catálogo.
+          </p>
+
+          <div className="mb-4" style={{ maxWidth: '500px' }}>
+            <div className="input-group">
+            <span className="input-group-text" style={{ background: '#242c47', border: '1px solid #39445e', color: '#a78bfa' }}>
+              🔎
+            </span>
+              <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Buscar por título o serial..."
+                  value={busqueda}
+                  onChange={(e) => setBusqueda(e.target.value)}
+                  style={{ ...estilos.campo, borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
+              />
+              {busqueda && (
+                  <button type="button" className="btn btn-outline-light" onClick={() => setBusqueda('')}>
+                    Limpiar
+                  </button>
               )}
             </div>
           </div>
+        </div>
 
-          <h6 style={{ color: '#a78bfa', margin: '28px 0 15px' }}>
-            CLASIFICACIÓN
-          </h6>
-
-          <div className="row g-3">
-            {selector('genero_id', 'Género', generos, 'nombre')}
-            {selector('director_id', 'Director', directores, 'nombres')}
-            {selector('productora_id', 'Productora', productoras, 'nombre_productora')}
-            {selector('tipo_id', 'Tipo', tipos, 'nombre')}
-          </div>
-
-          <div className="d-flex gap-2 mt-4 flex-wrap">
-            <button
-              type="submit"
-              className="btn px-4"
-              disabled={cargando}
-              style={{
-                background: 'linear-gradient(90deg, #7c3aed, #4f46e5)',
-                color: '#fff',
-                border: 'none',
-                fontWeight: '600',
-                borderRadius: '8px',
-              }}
-            >
-              {cargando
-                ? 'Guardando...'
-                : editandoId
-                  ? 'Guardar cambios'
-                  : '＋ Registrar película o serie'}
-            </button>
-
-            {editandoId && (
+        {/* Pestañas */}
+        <div className="d-flex gap-2 mb-4 flex-wrap">
+          {[
+            { id: 'peliculas', texto: '🎬 Películas', total: contar('peliculas') },
+            { id: 'series', texto: '📺 Series', total: contar('series') },
+            { id: 'todos', texto: 'Todos', total: items.length },
+          ].map((p) => (
               <button
-                type="button"
-                className="btn btn-outline-light"
-                onClick={limpiarFormulario}
-              >
-                Cancelar edición
-              </button>
-            )}
-          </div>
-        </form>
-      </div>
-
-      <div className="mb-3">
-        <h4 style={estilos.titulo}>
-          🍿 Películas y series registradas
-        </h4>
-
-        <p style={{ color: '#94a3b8', fontSize: '13px' }}>
-          Consulta, edita o elimina películas y series de tu catálogo.
-        </p>
-
-        {/* Buscador de películas y series */}
-        <div className="mb-4" style={{ maxWidth: '500px' }}>
-          <div className="input-group">
-            <span
-              className="input-group-text"
-              style={{
-                background: '#242c47',
-                border: '1px solid #39445e',
-                color: '#a78bfa',
-              }}
-            >
-              🔎
-            </span>
-
-            <input
-              type="text"
-              className="form-control"
-              placeholder="Buscar por título o serial..."
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              style={{
-                ...estilos.campo,
-                borderTopLeftRadius: 0,
-                borderBottomLeftRadius: 0,
-              }}
-            />
-
-            {busqueda && (
-              <button
-                type="button"
-                className="btn btn-outline-light"
-                onClick={() => setBusqueda('')}
-              >
-                Limpiar
-              </button>
-            )}
-          </div>
-
-          <small style={{ color: '#94a3b8' }}>
-            {busqueda
-              ? `${itemsFiltrados.length} resultado(s) encontrado(s)`
-              : `${items.length} título(s) en el catálogo`}
-          </small>
-        </div>
-      </div>
-
-      {/* Pestañas: películas, series y todos */}
-      <div className="d-flex gap-2 mb-4 flex-wrap">
-        {[
-          { id: 'peliculas', texto: '🎬 Películas', total: contar('peliculas') },
-          { id: 'series', texto: '📺 Series', total: contar('series') },
-          { id: 'todos', texto: 'Todos', total: items.length },
-        ].map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            onClick={() => setPestana(p.id)}
-            className="btn"
-            style={{
-              background: pestana === p.id
-                ? 'linear-gradient(90deg, #7c3aed, #4f46e5)'
-                : '#242c47',
-              color: '#fff',
-              border: '1px solid #39445e',
-              borderRadius: '8px',
-              fontWeight: '600',
-            }}
-          >
-            {p.texto} ({p.total})
-          </button>
-        ))}
-      </div>
-
-      {items.length === 0 ? (
-        <div style={{
-          ...estilos.panel,
-          textAlign: 'center',
-          padding: '45px',
-          color: '#94a3b8',
-        }}>
-          <div style={{ fontSize: '45px' }}>🎞️</div>
-
-          <h5 style={{ color: '#fff', marginTop: '12px' }}>
-            Aún no hay películas o series registradas
-          </h5>
-
-          ¡Comienza agregando tu primera película o serie!
-        </div>
-      ) : itemsFiltrados.length === 0 ? (
-        <div style={{
-          ...estilos.panel,
-          textAlign: 'center',
-          padding: '35px',
-          color: '#94a3b8',
-        }}>
-          <div style={{ fontSize: '38px' }}>🔍</div>
-
-          <h5 style={{ color: '#fff', marginTop: '12px' }}>
-            No encontramos resultados
-          </h5>
-
-          <p>
-            {busqueda
-              ? `No hay resultados que coincidan con «${busqueda}» en esta sección.`
-              : 'Aún no hay registros en esta sección.'}
-          </p>
-
-          {busqueda && (
-            <button
-              className="btn btn-outline-light"
-              onClick={() => setBusqueda('')}
-            >
-              Limpiar búsqueda
-            </button>
-          )}
-        </div>
-      ) : (
-        <div className="row g-4 align-items-stretch">
-          {itemsFiltrados.map((item) => (
-            <div className="col-12 col-md-6 col-xl-4" key={item._id}>
-              <div style={{
-                background: '#1a2035',
-                border: '1px solid #303951',
-                borderRadius: '13px',
-                overflow: 'hidden',
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-              }}>
-                <img
-                  src={urlImagen(item.imagen_portada)}
-                  alt={item.titulo}
+                  key={p.id}
+                  type="button"
+                  onClick={() => setPestana(p.id)}
+                  className="btn"
                   style={{
-                    width: '100%',
-                    height: '260px',
-                    objectFit: 'cover',
-                    background: '#11182a',
-                    flexShrink: 0,
-                  }}
-                  onError={(e) => {
-                    e.currentTarget.style.visibility = 'hidden';
-                  }}
-                />
-
-                <div style={{
-                  padding: '18px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  flex: 1,
-                }}>
-                  <div style={{
-                    color: '#a78bfa',
-                    fontSize: '12px',
-                    marginBottom: '6px',
-                  }}>
-                    {item.tipo_id?.nombre || 'Sin tipo'} · {item.anio_estreno}
-                  </div>
-
-                  <h5 style={{
+                    background: pestana === p.id ? 'linear-gradient(90deg, #7c3aed, #4f46e5)' : '#242c47',
                     color: '#fff',
-                    fontWeight: '700',
-                    minHeight: '48px',
-                    marginBottom: '10px',
-                  }}>
-                    {item.titulo}
-                  </h5>
-
-                  {/* Sinopsis resumida con altura uniforme */}
-                  <div style={{ minHeight: '112px', marginBottom: '12px' }}>
-                    <p style={{
-                      color: '#94a3b8',
-                      fontSize: '13px',
-                      lineHeight: '1.4',
-                      margin: 0,
-                      display: '-webkit-box',
-                      WebkitLineClamp: 5,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
-                      overflowWrap: 'anywhere',
-                    }}>
-                      {item.sinopsis}
-                    </p>
-
-                    {item.sinopsis && (
-                      <button
-                        type="button"
-                        onClick={() => verSinopsis(item)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#a78bfa',
-                          padding: '5px 0 0',
-                          fontSize: '12px',
-                          fontWeight: '600',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        Leer más
-                      </button>
-                    )}
-                  </div>
-
-                  <div style={{
-                    borderTop: '1px solid #303951',
-                    paddingTop: '12px',
-                    color: '#cbd5e1',
-                    fontSize: '12px',
-                    lineHeight: '1.7',
-                  }}>
-                    <div>Género: {item.genero_id?.nombre || 'No disponible'}</div>
-                    <div>Director: {item.director_id?.nombres || 'No disponible'}</div>
-                    <div>Productora: {item.productora_id?.nombre_productora || 'No disponible'}</div>
-                    <div>Serial: {item.serial}</div>
-                    <div>Creación: {fecha(item.fecha_creacion)}</div>
-                  </div>
-
-                  {/* Botones siempre al final */}
-                  <div className="d-flex gap-2 mt-auto pt-3">
-                    <button
-                      className="btn btn-sm btn-warning flex-fill"
-                      onClick={() => handleEditar(item)}
-                    >
-                      ✏️ Editar
-                    </button>
-
-                    <button
-                      className="btn btn-sm btn-danger flex-fill"
-                      onClick={() => handleEliminar(item)}
-                    >
-                      🗑 Eliminar
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
+                    border: '1px solid #39445e',
+                    borderRadius: '8px',
+                    fontWeight: '600',
+                  }}
+              >
+                {p.texto} ({p.total})
+              </button>
           ))}
         </div>
-      )}
-    </div>
+
+        {itemsFiltrados.length === 0 ? (
+            <div style={{ ...estilos.panel, textAlign: 'center', padding: '45px', color: '#94a3b8' }}>
+              <div style={{ fontSize: '45px' }}>🎞️</div>
+              <h5 style={{ color: '#fff', marginTop: '12px' }}>No hay registros en esta sección</h5>
+            </div>
+        ) : (
+            <div className="row g-4 align-items-stretch">
+              {itemsFiltrados.map((item) => (
+                  <div className="col-12 col-md-6 col-xl-4" key={item._id}>
+                    <div style={{
+                      background: '#1a2035',
+                      border: '1px solid #303951',
+                      borderRadius: '13px',
+                      overflow: 'hidden',
+                      height: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                    }}>
+                      <img
+                          src={urlImagen(item.imagen_portada)}
+                          alt={item.titulo}
+                          style={{
+                            width: '100%',
+                            height: '260px',
+                            objectFit: 'cover',
+                            background: '#11182a',
+                            flexShrink: 0,
+                          }}
+                          onError={(e) => {
+                            e.currentTarget.style.visibility = 'hidden';
+                          }}
+                      />
+
+                      <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                        <div style={{ color: '#a78bfa', fontSize: '12px', marginBottom: '6px' }}>
+                          {item.tipo_id?.nombre || 'Sin tipo'} · {item.anio_estreno}
+                        </div>
+
+                        <h5 style={{ color: '#fff', fontWeight: '700', minHeight: '48px', marginBottom: '10px' }}>
+                          {item.titulo}
+                        </h5>
+
+                        <div style={{ minHeight: '112px', marginBottom: '12px' }}>
+                          <p style={{
+                            color: '#94a3b8',
+                            fontSize: '13px',
+                            lineHeight: '1.4',
+                            margin: 0,
+                            display: '-webkit-box',
+                            WebkitLineClamp: 5,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                          }}>
+                            {item.sinopsis}
+                          </p>
+                          <button
+                              type="button"
+                              onClick={() => verSinopsis(item)}
+                              style={{ background: 'none', border: 'none', color: '#a78bfa', padding: '5px 0 0', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}
+                          >
+                            Leer más
+                          </button>
+                        </div>
+
+                        <div style={{ borderTop: '1px solid #303951', paddingTop: '12px', color: '#cbd5e1', fontSize: '12px', lineHeight: '1.7' }}>
+                          <div>Género: {item.genero_id?.nombre || 'No disponible'}</div>
+                          <div>Director: {item.director_id?.nombres || 'No disponible'}</div>
+                          <div>Productora: {item.productora_id?.nombre_productora || 'No disponible'}</div>
+                          <div>Serial: {item.serial}</div>
+                        </div>
+
+                        <div className="d-flex gap-2 mt-auto pt-3">
+                          <button className="btn btn-sm btn-warning flex-fill" onClick={() => handleEditar(item)}>
+                            ✏️ Editar
+                          </button>
+                          <button className="btn btn-sm btn-danger flex-fill" onClick={() => handleEliminar(item)}>
+                            🗑 Eliminar
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+              ))}
+            </div>
+        )}
+      </div>
   );
 }

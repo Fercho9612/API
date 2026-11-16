@@ -29,7 +29,7 @@ const cargarImagen = multer({
   storage: almacenamiento,
   fileFilter: filtroImagenes,
   limits: {
-    fileSize: 5 * 1024 * 1024
+    fileSize: 5 * 1024 * 1024 // 5 MB en bytes
   }
 });
 
