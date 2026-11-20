@@ -1,0 +1,26 @@
+services:
+  # 1. Backend (Node + Express + Mongoose)
+  - type: web
+    name: api-peliculas-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false
+
+  # 2. Frontend (React + Vite)
+  - type: web
+    name: api-peliculas-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    plan: free
+    envVars:
+      - key: VITE_API_URL
+        sync: false
